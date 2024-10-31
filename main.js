@@ -1,7 +1,7 @@
 const path = require('path');
 const fs = require('fs')
 // Main Discord.js Client Implentations & Base express imports
-const { Client, Events, GatewayIntentBits, REST, Collection } = require('discord.js');
+const { Client, Events, GatewayIntentBits, REST, Collection, Routes } = require('discord.js');
 require('dotenv').config();
 const token = require(process.env.TOKEN)
 const clientID = require(process.env.CLIENTID)
@@ -45,3 +45,27 @@ for (const folder of commandFolders) {
 // Event handler for reading seperate files for each event that occurs
 const eventsPath = path.join(__dirname, 'events');
 const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith(".js"));
+
+for (const file of eventFiles) { 
+    const filePath = path.join(eventsPath, file);
+    const event = require(filePath);
+    if (event.once) {
+        client.once(event.name, (...args) => event.execute(...args));
+    } else {
+        client.on(event.name, (...args) => event.execute(...args));
+    }
+}
+
+client.on('ready', async () => {
+    try {
+        console.log(`[LOG] | Refreshing ${commands.length} application commands...`);
+
+        const data = await rest.put(
+            Routes.applicationGuildCommands(clientId, guildID),
+            { body: commands },
+        );
+        console.log(`≽^•⩊•^≼ | Successfully reloaded ${data.length} commands!`)
+    } catch (err) {
+        console.error(`≽^-⩊-^≼ | An error has occurred: ${err} `)
+    }
+})
